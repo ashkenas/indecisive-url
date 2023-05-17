@@ -1,0 +1,19 @@
+{
+  "name": "indecisive-url",
+  "version": "1.0.0",
+  "description": "A website that definitely serves the same image to everyone that visits it",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashkenas/indecisive-url.git"
+  },
+  "author": "Jacob Ashkenas",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/ashkenas/indecisive-url/issues"
+  },
+  "homepage": "https://github.com/ashkenas/indecisive-url#readme"
+}
