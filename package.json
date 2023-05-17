@@ -4,7 +4,7 @@
   "description": "A website that definitely serves the same image to everyone that visits it",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/ashkenas/indecisive-url#readme",
   "dependencies": {
+    "canvas": "^2.11.2",
     "express": "^4.18.2",
     "redis": "^4.6.6"
   }

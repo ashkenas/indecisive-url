@@ -1,19 +1,47 @@
 const express = require('express');
 const redis = require('redis');
+const { createCanvas } = require('canvas');
+const { commandOptions } = require('redis');
 
-const redisClient = redis.createClient();
+
 const app = express();
+const redisClient = redis.createClient();
+
+const canvas = createCanvas(220, 40);
+const ctx = canvas.getContext('2d');
+ctx.font = '30px Arial';
 
 const sync = f => (req, res, next) => f(req, res, next).catch(next);
 
 app.get('*',
   sync(async (req, res, next) => {
-    const cached = await redisClient.hGet('indecisive-url', req.ip);
-    if (cached) return res.send(cached);
+    const cached = await redisClient.hGet('indecisive-url-equations', req.ip);
+    if (cached) {
+      const image = await redisClient.hGet(
+        commandOptions({ returnBuffers: true }),
+        'indecisive-url-images',
+        cached
+      );
+      res.set('Content-Type', 'image/png');
+      return res.send(image);
+    }
     next();
   }),
   sync(async (req, res) => {
-
+    const c = Math.floor(Math.random()*7+3);
+    const b = Math.floor(Math.random()*7+3);
+    const a = Math.floor(Math.random()*7+3) * b;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.fillText(`${a} / ${b} + ${c} = ?`, 5, 32);
+    const url = canvas.toDataURL('image/png');
+    res.set('Content-Type', 'image/png');
+    const data = Buffer.from(url.split(',')[1], 'base64');
+    const equation =`${a}/${b}+${c}`;
+    await redisClient.hSet('indecisive-url-equations', req.ip, equation);
+    await redisClient.hSet('indecisive-url-images', equation, data);
+    res.send(data);
   })
 );
 
