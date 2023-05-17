@@ -14,8 +14,17 @@ ctx.font = '30px Arial';
 const sync = f => (req, res, next) => f(req, res, next).catch(next);
 
 app.get('*',
+  (req, res, next) => {
+    if (req.get('X-Forwarded-For')) {
+      req.source = req.get('X-Forwarded-For').split(',')[1].trim();
+    } else {
+      req.source = req.ip;
+    }
+    next();
+  },
   sync(async (req, res, next) => {
-    const cached = await redisClient.hGet('indecisive-url-equations', req.ip);
+    console.log(req.source);
+    const cached = await redisClient.hGet('indecisive-url-equations', req.source);
     if (cached) {
       const image = await redisClient.hGet(
         commandOptions({ returnBuffers: true }),
@@ -39,7 +48,7 @@ app.get('*',
     res.set('Content-Type', 'image/png');
     const data = Buffer.from(url.split(',')[1], 'base64');
     const equation =`${a}/${b}+${c}`;
-    await redisClient.hSet('indecisive-url-equations', req.ip, equation);
+    await redisClient.hSet('indecisive-url-equations', req.source, equation);
     await redisClient.hSet('indecisive-url-images', equation, data);
     res.send(data);
   })
