@@ -3,6 +3,7 @@ const redis = require('redis');
 const { createCanvas } = require('canvas');
 const { commandOptions } = require('redis');
 
+const perIp = false;
 
 const app = express();
 const redisClient = redis.createClient();
@@ -16,21 +17,29 @@ const sync = f => (req, res, next) => f(req, res, next).catch(next);
 app.get('*',
   (req, res, next) => {
     if (req.get('X-Forwarded-For')) {
-      req.source = req.get('X-Forwarded-For').split(',')[1].trim();
+      req.source = req.get('x-forwarded-for').split(',')[1].trim();
     } else {
       req.source = req.ip;
     }
     next();
   },
   sync(async (req, res, next) => {
-    console.log(req.source);
-    const cached = await redisClient.hGet('indecisive-url-equations', req.source);
-    if (cached) {
+    let equation;
+    if (perIp) {
+      equation = await redisClient.hGet('indecisive-url-equations', req.source);
+    } else {
+      const c = Math.floor(Math.random()*7+3);
+      const b = Math.floor(Math.random()*7+3);
+      const a = Math.floor(Math.random()*7+3) * b;
+      equation =`${a}/${b}+${c}`;
+    }
+    if (equation) {
       const image = await redisClient.hGet(
         commandOptions({ returnBuffers: true }),
         'indecisive-url-images',
-        cached
+        equation
       );
+      if (!image) return next();
       res.set('Content-Type', 'image/png');
       return res.send(image);
     }
@@ -40,15 +49,21 @@ app.get('*',
     const c = Math.floor(Math.random()*7+3);
     const b = Math.floor(Math.random()*7+3);
     const a = Math.floor(Math.random()*7+3) * b;
+    const equation =`${a}/${b}+${c}`;
+    await redisClient.hSet('indecisive-url-equations', req.source, equation);
+    const image = await redisClient.hGet(
+      commandOptions({ returnBuffers: true }),
+      'indecisive-url-images',
+      equation
+    );
+    res.set('Content-Type', 'image/png');
+    if (image) return res.send(image);
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'black';
     ctx.fillText(`${a} / ${b} + ${c} = ?`, 5, 32);
     const url = canvas.toDataURL('image/png');
-    res.set('Content-Type', 'image/png');
     const data = Buffer.from(url.split(',')[1], 'base64');
-    const equation =`${a}/${b}+${c}`;
-    await redisClient.hSet('indecisive-url-equations', req.source, equation);
     await redisClient.hSet('indecisive-url-images', equation, data);
     res.send(data);
   })
